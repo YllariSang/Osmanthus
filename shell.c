@@ -16,14 +16,51 @@ static int strcmp(const char* s1, const char* s2) {
     return *(const unsigned char*)s1 - *(const unsigned char*)s2;
 }
 
+/* Outbound byte port operation helper */
+static inline void outb(uint16_t port, uint8_t val) {
+    asm volatile ( "outb %0, %1" : : "a"(val), "Nd"(port) );
+}
+
 void shell_init(void) {
     shell_buffer_index = 0;
     terminal_writestring("\nOsmanthus Shell Active.\n> ");
 }
 
+/* Native x86 CPUID Assembly Engine */
+static void print_cpu_info(void) {
+    uint32_t eax, ebx, ecx, edx;
+    
+    /* Call CPUID with EAX = 0 to fetch the Vendor ID string */
+    asm volatile("cpuid"
+                 : "=a"(eax), "=b"(ebx), "=c"(ecx), "=d"(edx)
+                 : "a"(0));
+                 
+    /* The 12-character string is returned across EBX, EDX, and ECX */
+    char vendor[13];
+    vendor[0] = (char)(ebx & 0xFF);
+    vendor[1] = (char)((ebx >> 8) & 0xFF);
+    vendor[2] = (char)((ebx >> 16) & 0xFF);
+    vendor[3] = (char)((ebx >> 24) & 0xFF);
+    
+    vendor[4] = (char)(edx & 0xFF);
+    vendor[5] = (char)((edx >> 8) & 0xFF);
+    vendor[6] = (char)((edx >> 16) & 0xFF);
+    vendor[7] = (char)((edx >> 24) & 0xFF);
+    
+    vendor[8] = (char)(ecx & 0xFF);
+    vendor[9] = (char)((ecx >> 8) & 0xFF);
+    vendor[10] = (char)((ecx >> 16) & 0xFF);
+    vendor[11] = (char)((ecx >> 24) & 0xFF);
+    vendor[12] = '\0';
+
+    terminal_writestring("Detected CPU Vendor String: ");
+    terminal_writestring(vendor);
+    terminal_writestring("\n");
+}
+
 /* Processes commands once Enter (\n) is pressed */
 static void shell_execute_command(void) {
-    shell_buffer[shell_buffer_index] = '\0'; // Null-terminate string buffer
+    shell_buffer[shell_buffer_index] = '\0';
 
     if (shell_buffer_index == 0) {
         terminal_writestring("\n> ");
@@ -32,18 +69,32 @@ static void shell_execute_command(void) {
 
     terminal_writestring("\n");
 
-    // COMMAND VALIDATION ENGINE
+    // COMMAND INTERPRETER MATRIX
     if (strcmp(shell_buffer, "help") == 0) {
         terminal_writestring("Osmanthus Kernel Supported Operations:\n");
         terminal_writestring("  help       - Display documentation support lists\n");
         terminal_writestring("  version    - Print microkernel release information\n");
+        terminal_writestring("  cpuinfo    - Pull hardware processor vendor ID via CPUID\n");
+        terminal_writestring("  reboot     - Pulse the 8042 controller to reset the machine\n");
         terminal_writestring("  clear      - Wipe terminal display buffer output\n");
     } 
     else if (strcmp(shell_buffer, "version") == 0) {
         terminal_writestring("Osmanthus OS Core v0.1.0 (32-bit Protected Mode)\n");
     } 
+    else if (strcmp(shell_buffer, "cpuinfo") == 0) {
+        print_cpu_info();
+    }
+    else if (strcmp(shell_buffer, "reboot") == 0) {
+        terminal_writestring("Pulsing hardware reset lines... Goodbye!\n");
+        
+        /* Pulse the reset line of the 8042 PS/2 Keyboard Controller.
+           Writing 0xFE to port 0x64 pulls the CPU's RESET pin low. */
+        outb(0x64, 0xFE);
+        
+        /* Fallback dead-loop if the chip takes a fraction of a millisecond to assert */
+        while(1) { asm volatile("hlt"); }
+    }
     else if (strcmp(shell_buffer, "clear") == 0) {
-        // External reference hack to reinitialize screen layout rows
         extern void terminal_initialize(void);
         terminal_initialize();
     } 
@@ -57,7 +108,6 @@ static void shell_execute_command(void) {
     terminal_writestring("\n> ");
 }
 
-/* Receives ASCII input directly from the keyboard driver interrupt layer */
 void shell_input_char(char c) {
     if (c == '\n') {
         shell_execute_command();

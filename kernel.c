@@ -15,6 +15,25 @@ static uint8_t terminal_color;
 
 extern void shell_init(void);
 
+/* Low-level outbound port writer */
+static inline void outb(uint16_t port, uint8_t val) {
+    asm volatile ( "outb %0, %1" : : "a"(val), "Nd"(port) );
+}
+
+/* Updates the hardware blinking cursor position via the VGA CRTC ports */
+void update_cursor(void) {
+    /* Calculate the 16-bit linear index of our 2D coordinate */
+    uint16_t position = (terminal_row * VGA_WIDTH) + terminal_column;
+
+    /* Write the lower 8 bits of the cursor position offset (Register 15) */
+    outb(0x3D4, 0x0F);
+    outb(0x3D5, (uint8_t)(position & 0xFF));
+
+    /* Write the upper 8 bits of the cursor position offset (Register 14) */
+    outb(0x3D4, 0x0E);
+    outb(0x3D5, (uint8_t)((position >> 8) & 0xFF));
+}
+
 /* --- TERMINAL ACTIONS --- */
 void terminal_initialize(void) {
     terminal_row = 0;
@@ -27,6 +46,7 @@ void terminal_initialize(void) {
             VGA_BUFFER[index] = (uint16_t) ' ' | (uint16_t) terminal_color << 8;
         }
     }
+    update_cursor();
 }
 
 static void terminal_scroll(void) {
@@ -54,6 +74,7 @@ void terminal_putchar(char c) {
             const size_t index = terminal_row * VGA_WIDTH + terminal_column;
             VGA_BUFFER[index] = (uint16_t) ' ' | (uint16_t) terminal_color << 8;
         }
+        update_cursor();
         return;
     }
 
@@ -62,6 +83,7 @@ void terminal_putchar(char c) {
         if (++terminal_row == VGA_HEIGHT) {
             terminal_scroll();
         }
+        update_cursor();
         return;
     }
 
@@ -74,6 +96,7 @@ void terminal_putchar(char c) {
             terminal_scroll();
         }
     }
+    update_cursor();
 }
 
 void terminal_writestring(const char* data) {
@@ -82,14 +105,12 @@ void terminal_writestring(const char* data) {
     }
 }
 
-/* --- KERNEL ENTRY ENTRY INTERFACE --- */
+/* --- KERNEL ENTRY INTERFACE --- */
 __attribute__((optimize("O0")))
 void kernel_main(void) {
-    /* Initialize display terminal maps */
     terminal_initialize();
     terminal_writestring("Initializing Custom Arch Microkernel...\n");
     
-    /* Hardware Initialization Sequence */
     init_gdt();
     terminal_writestring("GDT Layout Initialization: SUCCESS\n");
     
@@ -99,10 +120,8 @@ void kernel_main(void) {
     init_keyboard();
     terminal_writestring("Keyboard Driver Initialization: SUCCESS\n");
 
-    /* Safely release CPU hardware gate line constraints */
     asm volatile("sti");
     terminal_writestring("CPU Hardware Interrupt Lines Enabled: TRUE\n");
 
-    /* Hand off total runtime execution control to our Shell interface engine */
     shell_init();
 }

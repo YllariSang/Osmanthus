@@ -11,12 +11,11 @@ nasm -f elf32 gdt_flush.asm -o gdt_flush.o
 nasm -f elf32 interrupt.asm -o interrupt.o
 
 echo "=== 3. COMPILING CORE C MODULES ==="
-gcc -m32 -c kernel.c -o kernel.o -std=gnu99 -ffreestanding -O2 -Wall -Wextra
-gcc -m32 -c gdt.c -o gdt.o -std=gnu99 -ffreestanding -O2 -Wall -Wextra
-gcc -m32 -c idt.c -o idt.o -std=gnu99 -ffreestanding -O2 -Wall -Wextra
-gcc -m32 -c keyboard.c -o keyboard.o -std=gnu99 -ffreestanding -O2 -Wall -Wextra
-# Ensure shell.c compiles into shell.o here:
-gcc -m32 -c shell.c -o shell.o -std=gnu99 -ffreestanding -O2 -Wall -Wextra
+gcc -m32 -c kernel.c -o kernel.o -std=gnu99 -ffreestanding -O2 -Wall -Wextra -fno-stack-protector
+gcc -m32 -c gdt.c -o gdt.o -std=gnu99 -ffreestanding -O2 -Wall -Wextra -fno-stack-protector
+gcc -m32 -c idt.c -o idt.o -std=gnu99 -ffreestanding -O2 -Wall -Wextra -fno-stack-protector
+gcc -m32 -c keyboard.c -o keyboard.o -std=gnu99 -ffreestanding -O2 -Wall -Wextra -fno-stack-protector
+gcc -m32 -c shell.c -o shell.o -std=gnu99 -ffreestanding -O2 -Wall -Wextra -fno-stack-protector
 
 echo "=== 4. LINKING UNIFIED KERNEL BINARY ==="
 # CRITICAL: shell.o MUST be appended to the end of this object list!
