@@ -22,15 +22,17 @@ void init_keyboard(void) {
     }
 }
 
-/* Force global symbol mapping visibility flag */
+/* Forward declaration of our shell processing entry hook */
+extern void shell_input_char(char c);
+
 void keyboard_handler(registers_t* regs __attribute__((unused))) {
     uint8_t scancode = inb(0x60);
     
-    // Process when a key is pressed down (bit 7 clear)
     if (!(scancode & 0x80)) {
         char ascii = kbd_us[scancode];
         if (ascii != 0) {
-            terminal_putchar(ascii);
+            /* PASS STRAIGHT TO THE SHELL CORE BUFFER */
+            shell_input_char(ascii);
         }
     }
 }

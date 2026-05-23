@@ -1,5 +1,4 @@
 #!/bin/bash
-# Prevent hidden script fall-throughs on error states
 set -e
 
 echo "=== 1. PURGING WORKSPACE CACHE ==="
@@ -16,9 +15,12 @@ gcc -m32 -c kernel.c -o kernel.o -std=gnu99 -ffreestanding -O2 -Wall -Wextra
 gcc -m32 -c gdt.c -o gdt.o -std=gnu99 -ffreestanding -O2 -Wall -Wextra
 gcc -m32 -c idt.c -o idt.o -std=gnu99 -ffreestanding -O2 -Wall -Wextra
 gcc -m32 -c keyboard.c -o keyboard.o -std=gnu99 -ffreestanding -O2 -Wall -Wextra
+# Ensure shell.c compiles into shell.o here:
+gcc -m32 -c shell.c -o shell.o -std=gnu99 -ffreestanding -O2 -Wall -Wextra
 
 echo "=== 4. LINKING UNIFIED KERNEL BINARY ==="
-ld -m elf_i386 -T linker.ld -o myos.bin boot.o gdt_flush.o interrupt.o kernel.o gdt.o idt.o keyboard.o
+# CRITICAL: shell.o MUST be appended to the end of this object list!
+ld -m elf_i386 -T linker.ld -o myos.bin boot.o gdt_flush.o interrupt.o kernel.o gdt.o idt.o keyboard.o shell.o
 
 echo "=== 5. BUILDING ISO FILESYSTEM TREE ==="
 mkdir -p isodir/boot/grub
