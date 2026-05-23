@@ -3,6 +3,7 @@
 #include "gdt.h"
 #include "idt.h"
 #include "keyboard.h"
+#include "malloc.h"
 
 /* --- VGA TERMINAL CONFIGURATION --- */
 static const size_t VGA_WIDTH = 80;
@@ -14,6 +15,7 @@ static size_t terminal_column;
 static uint8_t terminal_color;
 
 extern void shell_init(void);
+extern char end[]; /* Linker script symbol marking the end of binary data */
 
 /* Low-level outbound port writer */
 static inline void outb(uint16_t port, uint8_t val) {
@@ -22,7 +24,6 @@ static inline void outb(uint16_t port, uint8_t val) {
 
 /* Updates the hardware blinking cursor position via the VGA CRTC ports */
 void update_cursor(void) {
-    /* Calculate the 16-bit linear index of our 2D coordinate */
     uint16_t position = (terminal_row * VGA_WIDTH) + terminal_column;
 
     /* Write the lower 8 bits of the cursor position offset (Register 15) */
@@ -105,7 +106,7 @@ void terminal_writestring(const char* data) {
     }
 }
 
-/* --- KERNEL ENTRY INTERFACE --- */
+/* --- KERNEL MAIN ENTRY POINT --- */
 __attribute__((optimize("O0")))
 void kernel_main(void) {
     terminal_initialize();
@@ -122,6 +123,10 @@ void kernel_main(void) {
 
     asm volatile("sti");
     terminal_writestring("CPU Hardware Interrupt Lines Enabled: TRUE\n");
+
+    /* Initialize 1 MB of raw heap space right above our binary image location */
+    uint32_t heap_placement_address = (uint32_t)end;
+    kmalloc_init(heap_placement_address, 1024 * 1024);
 
     shell_init();
 }

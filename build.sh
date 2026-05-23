@@ -16,10 +16,10 @@ gcc -m32 -c gdt.c -o gdt.o -std=gnu99 -ffreestanding -O2 -Wall -Wextra -fno-stac
 gcc -m32 -c idt.c -o idt.o -std=gnu99 -ffreestanding -O2 -Wall -Wextra -fno-stack-protector
 gcc -m32 -c keyboard.c -o keyboard.o -std=gnu99 -ffreestanding -O2 -Wall -Wextra -fno-stack-protector
 gcc -m32 -c shell.c -o shell.o -std=gnu99 -ffreestanding -O2 -Wall -Wextra -fno-stack-protector
+gcc -m32 -c malloc.c -o malloc.o -std=gnu99 -ffreestanding -O2 -Wall -Wextra -fno-stack-protector
 
 echo "=== 4. LINKING UNIFIED KERNEL BINARY ==="
-# CRITICAL: shell.o MUST be appended to the end of this object list!
-ld -m elf_i386 -T linker.ld -o myos.bin boot.o gdt_flush.o interrupt.o kernel.o gdt.o idt.o keyboard.o shell.o
+ld -m elf_i386 -T linker.ld -o myos.bin boot.o gdt_flush.o interrupt.o kernel.o gdt.o idt.o keyboard.o shell.o malloc.o
 
 echo "=== 5. BUILDING ISO FILESYSTEM TREE ==="
 mkdir -p isodir/boot/grub
