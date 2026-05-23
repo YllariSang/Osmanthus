@@ -1,31 +1,32 @@
-MODULEALIGN equ  1 << 0
-MEMINFO     equ  1 << 1
-FLAGS       equ  MODULEALIGN | MEMINFO
-MAGIC       equ  0x1BADB002
-CHECKSUM    equ -(MAGIC + FLAGS)
+; --- MULTIBOOT HEADER SPECIFICATION ---
+MBOOT_PAGE_ALIGN    equ 1 << 0
+MBOOT_MEM_INFO      equ 1 << 1
+MBOOT_HEADER_MAGIC  equ 0x1BADB002
+MBOOT_HEADER_FLAGS  equ MBOOT_PAGE_ALIGN | MBOOT_MEM_INFO
+MBOOT_CHECKSUM      equ -(MBOOT_HEADER_MAGIC + MBOOT_HEADER_FLAGS)
 
 section .multiboot
 align 4
-    dd MAGIC
-    dd FLAGS
-    dd CHECKSUM
+    dd MBOOT_HEADER_MAGIC
+    dd MBOOT_HEADER_FLAGS
+    dd MBOOT_CHECKSUM
 
 section .text
 global _start
 extern kernel_main
 
 _start:
-    cli                  ; Clear interrupts during stack setup
-    mov esp, stack_top   ; Load our system stack pointer
+    ; Establish a rock-solid, isolated temporary stack pointer at the 4MB boundary mark.
+    ; This keeps the stack thousands of bytes clear of our variables or code sections!
+    mov esp, 0x00400000
     
-    call kernel_main     ; Jump to our C kernel code execution
+    ; Reset EFLAGS to clear any leftover nested task loops or interrupt states
+    push 0
+    popf
 
-.kernel_halt_loop:
-    hlt                  ; Safe fallback: wait for an interrupt to arrive
-    jmp .kernel_halt_loop ; Safely loop backward forever
+    ; Call our kernel main without forcing any misaligned argument pushes onto our stack pointer
+    call kernel_main
 
-section .bootstrap_stack nobits
-align 16
-stack_bottom:
-    resb 16384           ; Allocate 16 KiB of safe stack space
-stack_top:
+.hang:
+    hlt
+    jmp .hang

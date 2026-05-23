@@ -11,15 +11,16 @@ nasm -f elf32 gdt_flush.asm -o gdt_flush.o
 nasm -f elf32 interrupt.asm -o interrupt.o
 
 echo "=== 3. COMPILING CORE C MODULES ==="
-gcc -m32 -c kernel.c -o kernel.o -std=gnu99 -ffreestanding -O2 -Wall -Wextra -fno-stack-protector
-gcc -m32 -c gdt.c -o gdt.o -std=gnu99 -ffreestanding -O2 -Wall -Wextra -fno-stack-protector
-gcc -m32 -c idt.c -o idt.o -std=gnu99 -ffreestanding -O2 -Wall -Wextra -fno-stack-protector
-gcc -m32 -c keyboard.c -o keyboard.o -std=gnu99 -ffreestanding -O2 -Wall -Wextra -fno-stack-protector
-gcc -m32 -c shell.c -o shell.o -std=gnu99 -ffreestanding -O2 -Wall -Wextra -fno-stack-protector
-gcc -m32 -c malloc.c -o malloc.o -std=gnu99 -ffreestanding -O2 -Wall -Wextra -fno-stack-protector
+gcc -m32 -c kernel.c -o kernel.o -std=gnu99 -ffreestanding -O2 -Wall -Wextra -fno-stack-protector -fno-pie -fno-asynchronous-unwind-tables
+gcc -m32 -c gdt.c -o gdt.o -std=gnu99 -ffreestanding -O2 -Wall -Wextra -fno-stack-protector -fno-pie -fno-asynchronous-unwind-tables
+gcc -m32 -c idt.c -o idt.o -std=gnu99 -ffreestanding -O2 -Wall -Wextra -fno-stack-protector -fno-pie -fno-asynchronous-unwind-tables
+gcc -m32 -c keyboard.c -o keyboard.o -std=gnu99 -ffreestanding -O2 -Wall -Wextra -fno-stack-protector -fno-pie -fno-asynchronous-unwind-tables
+gcc -m32 -c shell.c -o shell.o -std=gnu99 -ffreestanding -O2 -Wall -Wextra -fno-stack-protector -fno-pie -fno-asynchronous-unwind-tables
+gcc -m32 -c malloc.c -o malloc.o -std=gnu99 -ffreestanding -O2 -Wall -Wextra -fno-stack-protector -fno-pie -fno-asynchronous-unwind-tables
+gcc -m32 -c graphics.c -o graphics.o -std=gnu99 -ffreestanding -O2 -Wall -Wextra -fno-stack-protector -fno-pie -fno-asynchronous-unwind-tables
 
 echo "=== 4. LINKING UNIFIED KERNEL BINARY ==="
-ld -m elf_i386 -T linker.ld -o myos.bin boot.o gdt_flush.o interrupt.o kernel.o gdt.o idt.o keyboard.o shell.o malloc.o
+ld -m elf_i386 -T linker.ld -static -no-pie -o myos.bin boot.o kernel.o gdt.o idt.o keyboard.o shell.o malloc.o graphics.o gdt_flush.o interrupt.o
 
 echo "=== 5. BUILDING ISO FILESYSTEM TREE ==="
 mkdir -p isodir/boot/grub

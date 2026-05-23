@@ -2,30 +2,32 @@ ENTRY(_start)
 
 SECTIONS
 {
-    . = 0x100000;
+    /* Force the kernel image to start precisely at the 1 Megabyte physical address boundary mark */
+    . = 0x00100000;
 
-    .text : AT(ADDR(.text))
+    .text BLOCK(4K) : ALIGN(4K)
     {
         *(.multiboot)
         *(.text)
     }
 
-    .rodata : AT(ADDR(.rodata))
+    .rodata BLOCK(4K) : ALIGN(4K)
     {
         *(.rodata)
     }
 
-    .data : AT(ADDR(.data))
+    .data BLOCK(4K) : ALIGN(4K)
     {
         *(.data)
     }
 
-    .bss : AT(ADDR(.bss))
+    .bss BLOCK(4K) : ALIGN(4K)
     {
-        *(COMMON)
+        *(.COMMON)
         *(.bss)
-        *(.bootstrap_stack)
     }
-    
+
+    /* Set our global heap placement boundary tracking markers safely past our code blocks */
+    _end = .;
     end = .;
 }

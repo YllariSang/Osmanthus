@@ -1,5 +1,6 @@
 #include "malloc.h"
 
+/* Pointer pointing to the absolute base metadata node index of our heap chain */
 static kmalloc_header_t* heap_start = NULL;
 
 /* Initialize our heap space parameters */
@@ -57,6 +58,26 @@ void kfree(void* ptr) {
             current->next = current->next->next;
             /* Retest the current block against the newly pulled ahead node index */
             continue; 
+        }
+        current = current->next;
+    }
+}
+
+/* Iterates through the heap list to calculate live usage metrics for SysAdmin tools */
+void kmalloc_get_stats(size_t* total_free, size_t* total_used, size_t* overhead) {
+    *total_free = 0;
+    *total_used = 0;
+    *overhead = 0;
+
+    kmalloc_header_t* current = heap_start;
+    while (current != NULL) {
+        /* Count the metadata footprint separate from actual payload blocks */
+        *overhead += sizeof(kmalloc_header_t);
+
+        if (current->is_free) {
+            *total_free += current->size;
+        } else {
+            *total_used += current->size;
         }
         current = current->next;
     }
