@@ -1,0 +1,9 @@
+# Compiled binaries and ISO images
+*.bin
+*.iso
+
+# Object files
+*.o
+
+# Temporary build directories
+isodir/
