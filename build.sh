@@ -52,7 +52,7 @@ echo "=== 7. BOOTING TARGET ENGINE ==="
 killall -9 qemu-system-i386 novnc_proxy websockify 2>/dev/null || true
 
 # Initialize QEMU background virtualization linking hardware graphics arrays along standard serial lines
-qemu-system-i386 -cdrom myos.iso -vga std -vnc :0 -serial mon:stdio &
+qemu-system-i386 -cdrom myos.iso -vga std -serial stdio
 QEMU_PID=$!
 
 # Give the virtual hardware a brief second to claim memory regions securely
@@ -65,7 +65,7 @@ PROXY_PID=$!
 sleep 1
 
 # Auto-launch Windows browser page container targeted at our local pipeline endpoint frame
-powershell.exe Start-Process '"http://127.0.0.1:6080/vnc.html?autoconnect=true&resize=scale"'
+# powershell.exe Start-Process '"http://127.0.0.1:6080/vnc.html?autoconnect=true&resize=scale"'
 
 echo "=== KERNEL DEPLOYMENT RUNNING ==="
 echo "Watch this terminal window for live microkernel text diagnostic reports."
