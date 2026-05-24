@@ -1,18 +1,23 @@
 global gdt_flush
 
 gdt_flush:
-    mov eax, [esp+4]  ; Get the pointer to the GDT structure passed as an argument
-    lgdt [eax]        ; Execute the Load GDT CPU instruction
+    ; Grab the first incoming argument passed via the stack frame (pointer to gdt_ptr)
+    mov eax, [esp + 4]
+    
+    ; Load the Global Descriptor Table register profile
+    lgdt [eax]
 
-    ; Reload data segment pointers with our new data offset (0x10 is entry index 2)
-    mov ax, 0x10      
+    ; Reload Data Segment Registers with our flat data selector index (0x10)
+    mov ax, 0x10
     mov ds, ax
     mov es, ax
     mov fs, ax
     mov gs, ax
     mov ss, ax
-    
-    ; Execute a far jump to reload code segment cache register (0x08 is entry index 1)
-    jmp 0x08:.flush
-.flush:
+
+    ; Perform a Far Jump to reload the Code Segment Register (CS) with index 0x08
+    jmp 0x08:.flush_done
+
+.flush_done:
+    ; Clean return back to the caller frame without stack misalignment
     ret

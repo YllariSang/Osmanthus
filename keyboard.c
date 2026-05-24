@@ -1,65 +1,42 @@
-#include "keyboard.h"
-
-/* Low-level inbound port byte reader */
-static inline uint8_t inb(uint16_t port) {
-    uint8_t ret;
-    asm volatile ( "inb %1, %0" : "=a"(ret) : "Nd"(port) );
-    return ret;
-}
+#include <stdint.h>
 
 extern void shell_input_char(char c);
 
-/* Tracker flag for modifier states */
-static uint8_t shift_active = 0;
+/* Low-level port I/O wrappers matched strictly for scalar x86 compiler compilation */
+static inline uint8_t inb(uint16_t port) {
+    uint8_t ret;
+    asm volatile("inb %w1, %b0" : "=a"(ret) : "Nd"(port));
+    return ret;
+}
 
-/* Standard Unshifted Scan Matrix */
+static inline void outb(uint16_t port, uint8_t val) {
+    asm volatile("outb %b0, %w1" : : "a"(val), "Nd"(port));
+}
+
+/* Comprehensive Translation Scan Matrix (Standard US-QWERTY Mapping Scheme) */
 static const char kbd_us[128] = {
     0,  27, '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '=', '\b',
   '\t', 'q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p', '[', ']', '\n',
     0,  'a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', ';', '\'', '`',   0,
-  '\\', 'z', 'x', 'c', 'v', 'b', 'n', 'm', ',', '.', '/',   0, '*',   0,
-   ' ',   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
-     0,   0,   0,   0,  '-',   0,   0,   0,   0,  '+',   0,   0,   0,   0,
-     0,   0,   0,   0,   0,   0
-};
-
-/* Shifted Symbol Scan Matrix (Maps Dash to Underscore!) */
-static const char kbd_us_shifted[128] = {
-    0,  27, '!', '@', '#', '$', '%', '^', '&', '*', '(', ')', '_', '+', '\b',
-  '\t', 'Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P', '{', '}', '\n',
-    0,  'A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L', ':', '"', '~',   0,
-   '|', 'Z', 'X', 'C', 'V', 'B', 'N', 'M', '<', '>', '?',   0, '*',   0,
-   ' ',   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
-     0,   0,   0,   0,  '-',   0,   0,   0,   0,  '+',   0,   0,   0,   0,
-     0,   0,   0,   0,   0,   0
+ '\\', 'z', 'x', 'c', 'v', 'b', 'n', 'm', ',', '.', '/',   0, '*',   0, ' '
 };
 
 void init_keyboard(void) {
-    /* Ready for input initialization signals can be placed here if needed */
+    // Controller initialization lines if required
 }
 
-void keyboard_handler(registers_t* regs __attribute__((unused))) {
+/* Hardware Interrupt service routine bound directly to IRQ1 via your IDT table entry */
+void keyboard_handler(void) {
     uint8_t scancode = inb(0x60);
     
-    /* INTERCEPT MODIFIER KEY CODES */
-    switch (scancode) {
-        case 0x2A: /* Left Shift Pressed */
-        case 0x36: /* Right Shift Pressed */
-            shift_active = 1;
-            return;
-        case 0xAA: /* Left Shift Released */
-        case 0xB6: /* Right Shift Released */
-            shift_active = 0;
-            return;
-    }
+    // Issue the explicit End-Of-Interrupt token to the Master PIC command port
+    outb(0x20, 0x20);
 
-    /* Process standard key strokes if it's a "Make" code (Press) */
+    // If the top bit of the byte is clear, the key was pressed down (Keypress Event)
     if (!(scancode & 0x80)) {
-        /* Route execution to the correct translation table map matrix */
-        char ascii = shift_active ? kbd_us_shifted[scancode] : kbd_us[scancode];
-        
+        char ascii = kbd_us[scancode];
         if (ascii != 0) {
-            shell_input_char(ascii);
+            shell_input_char(ascii); // Send character directly into shell's latching buffer
         }
     }
 }

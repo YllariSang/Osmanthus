@@ -1,31 +1,43 @@
-MODULEALIGN equ  1 << 0
-MEMINFO     equ  1 << 1
-FLAGS       equ  MODULEALIGN | MEMINFO
-MAGIC       equ  0x1BADB002
-CHECKSUM    equ -(MAGIC + FLAGS)
+; --- MULTIBOOT FLAGS SPECIFICATION CONFIGURATION ---
+MBOOT_PAGE_ALIGN    equ 1 << 0
+MBOOT_MEM_INFO      equ 1 << 1
+MBOOT_GRAPHICS_MODE equ 1 << 2  ; Request GRUB to initialize a video canvas layout!
+MBOOT_FLAGS         equ MBOOT_PAGE_ALIGN | MBOOT_MEM_INFO | MBOOT_GRAPHICS_MODE
+MBOOT_MAGIC         equ 0x1BADB002
+MBOOT_CHECKSUM      equ -(MBOOT_MAGIC + MBOOT_FLAGS)
 
 section .multiboot
 align 4
-    dd MAGIC
-    dd FLAGS
-    dd CHECKSUM
+    dd MBOOT_MAGIC
+    dd MBOOT_FLAGS
+    dd MBOOT_CHECKSUM
+    
+    ; GRUB Address fallbacks (Required pads for Multiboot compliance)
+    dd 0, 0, 0, 0, 0
+    
+    ; Target Video Mode Request Parameters
+    dd 0    ; 0 = Linear graphics frame buffer mode type
+    dd 320  ; Target Resolution Width Max Boundary
+    dd 200  ; Target Resolution Height Max Boundary
+    dd 8    ; Target Color Bit-Depth Format (8-bit = 256 Colors index)
+
+section .bss
+align 16
+stack_bottom:
+    resb 16384 ; 16 KiB reserved for system stack space
+stack_top:
 
 section .text
 global _start
-extern kernel_main
-
 _start:
-    cli                  ; Clear interrupts during stack setup
-    mov esp, stack_top   ; Load our system stack pointer
-    
-    call kernel_main     ; Jump to our C kernel code execution
+    ; Set up our secure stack pointer frame layout
+    mov esp, stack_top
 
-.kernel_halt_loop:
-    hlt                  ; Safe fallback: wait for an interrupt to arrive
-    jmp .kernel_halt_loop ; Safely loop backward forever
+    ; Pass control directly into your C microkernel entry point
+    extern kernel_main
+    call kernel_main
 
-section .bootstrap_stack nobits
-align 16
-stack_bottom:
-    resb 16384           ; Allocate 16 KiB of safe stack space
-stack_top:
+.halt:
+    cli
+    hlt
+    jmp .halt
