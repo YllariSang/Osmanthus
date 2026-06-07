@@ -31,7 +31,7 @@ void draw_cursor(int x, int y) {
 }
 
 /* External linkages and variables */
-extern void print_serial_string(const char* str);
+#include "stdio.h"
 extern volatile char native_key_buffer; // Read directly from keyboard.c!
 
 void run_graphics_demo(void) {
@@ -43,10 +43,10 @@ void run_graphics_demo(void) {
     draw_rectangle(10, 10, 30, 30, 4); // Red Box
     draw_cursor(mouse_x, mouse_y);
     
-    print_serial_string("\n\r=== NATIVE GRAPHICS DEMO ACTIVE ===\n\r");
-    print_serial_string("Click your mouse inside the NOVM DISPLAY SCREEN window directly.\n\r");
-    print_serial_string("Use [W, A, S, D] keys on your physical keyboard to glide the cursor block.\n\r");
-    print_serial_string("Press [q] to quit.\n\r");
+    printf("\n=== NATIVE GRAPHICS DEMO ACTIVE ===\n");
+    printf("Click your mouse inside the NOVM DISPLAY SCREEN window directly.\n");
+    printf("Use [W, A, S, D] keys on your physical keyboard to glide the cursor block.\n");
+    printf("Press [q] to quit.\n");
 
     // Force clear any leftover keystroke tokens before entering the loop
     native_key_buffer = '\0';
@@ -67,7 +67,7 @@ void run_graphics_demo(void) {
             if (c == 'd' || c == 'D') { if (mouse_x < 300) mouse_x += 8; }
             
             if (c == 'q' || c == 'Q') {
-                print_serial_string("Exiting graphics canvas mode...\n\r");
+                printf("Exiting graphics canvas mode...\n");
                 break;
             }
             

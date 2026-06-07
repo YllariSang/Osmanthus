@@ -25,10 +25,14 @@ gcc $FLAGS shell.c -o shell.o
 gcc $FLAGS graphics.c -o graphics.o
 gcc $FLAGS malloc.c -o malloc.o
 gcc $FLAGS keyboard.c -o keyboard.o
+gcc $FLAGS vga.c -o vga.o
+gcc $FLAGS timer.c -o timer.o
+gcc $FLAGS string.c -o string.o
+gcc $FLAGS stdio.c -o stdio.o
 
 echo "=== 4. LINKING UNIFIED KERNEL BINARY ==="
 # Bind all compiled artifacts sequentially, locking boot.o strictly at the head front
-ld -m elf_i386 -T linker.ld -o isodir/boot/myos.bin boot.o interrupt.o kernel.o gdt.o gdt_flush.o idt.o shell.o graphics.o malloc.o keyboard.o
+ld -m elf_i386 -T linker.ld -o isodir/boot/myos.bin boot.o interrupt.o kernel.o gdt.o gdt_flush.o idt.o shell.o graphics.o malloc.o keyboard.o vga.o timer.o string.o stdio.o
 
 echo "=== 5. BUILDING ISO FILESYSTEM TREE ==="
 if [ -f grub.cfg ]; then
@@ -52,7 +56,7 @@ echo "=== 7. BOOTING TARGET ENGINE ==="
 killall -9 qemu-system-i386 novnc_proxy websockify 2>/dev/null || true
 
 # Initialize QEMU background virtualization linking hardware graphics arrays along standard serial lines
-qemu-system-i386 -cdrom myos.iso -vga std -vnc :0 -serial mon:stdio &
+qemu-system-i386 -cdrom myos.iso -vga std -serial stdio
 QEMU_PID=$!
 
 # Give the virtual hardware a brief second to claim memory regions securely
@@ -65,7 +69,7 @@ PROXY_PID=$!
 sleep 1
 
 # Auto-launch Windows browser page container targeted at our local pipeline endpoint frame
-powershell.exe Start-Process '"http://127.0.0.1:6080/vnc.html?autoconnect=true&resize=scale"'
+# powershell.exe Start-Process '"http://127.0.0.1:6080/vnc.html?autoconnect=true&resize=scale"'
 
 echo "=== KERNEL DEPLOYMENT RUNNING ==="
 echo "Watch this terminal window for live microkernel text diagnostic reports."

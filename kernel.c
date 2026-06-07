@@ -1,5 +1,9 @@
 #include <stdint.h>
 #include <stddef.h>
+#include "vga.h"
+#include "timer.h"
+#include "stdio.h"
+#include "kernel.h"
 
 #define SERIAL_PORT_COM1 0x3F8
 
@@ -66,12 +70,14 @@ char read_serial_char(void) {
     return inb(SERIAL_PORT_COM1);
 }
 
-/* --- SERIAL BACKEND COMPATIBILITY WRAPPERS FOR LINKER --- */
+/* --- TERMINAL BACKEND COMPATIBILITY WRAPPERS FOR LINKER --- */
 void terminal_initialize(void) {
+    vga_init();
     print_serial_string("\n\r--- TERMINAL SCREEN RESET ---\n\r");
 }
 
 void terminal_putchar(char c) {
+    vga_putchar(c);
     if (c == '\n') {
         write_serial_char('\n');
         write_serial_char('\r');
@@ -81,6 +87,7 @@ void terminal_putchar(char c) {
 }
 
 void terminal_writestring(const char* data) {
+    vga_writestring(data);
     print_serial_string(data);
 }
 
@@ -91,27 +98,35 @@ void kernel_main(void) {
 
     /* Fire up the text streaming serial connection */
     init_serial();
-    print_serial_string("\n\r=== OSMANTHUS MICROKERNEL SERIAL PIPELINE ACTIVE ===\n\r");
+    
+    /* Initialize VGA Text Console */
+    vga_init();
+    
+    printf("=== OSMANTHUS MICROKERNEL ACTIVE ===\n");
+    printf("Build Date: Jun 07 2026\n");
 
     init_gdt();
-    print_serial_string("GDT Layout Initialization: SUCCESS\n\r");
+    printf("GDT Layout Initialization: SUCCESS\n");
 
     init_idt();
-    print_serial_string("IDT Core Handlers Activated: SUCCESS\n\r");
+    printf("IDT Core Handlers Activated: SUCCESS\n");
 
     init_keyboard();
-    print_serial_string("Keyboard Driver Initialization: SUCCESS\n\r");
+    printf("Keyboard Driver Initialization: SUCCESS\n");
+
+    init_timer(100);
+    printf("PIT Timer (100Hz) Initialization: SUCCESS\n");
 
     // Enable CPU hardware lines again now that tables are locked down safely
     asm volatile("sti");
-    print_serial_string("CPU Hardware Interrupt Lines Enabled: TRUE\n\r");
+    printf("CPU Hardware Interrupt Lines Enabled: TRUE\n");
 
     // Set up our kernel dynamic heap boundaries starting at the end of the loaded binary
     uint32_t heap_placement_address = (uint32_t)_end;
     kmalloc_init(heap_placement_address, 1024 * 1024); // Allocate 1MB Pool Area
-    print_serial_string("Kernel Dynamic Heap System: READY\n\r");
+    printf("Kernel Dynamic Heap System: READY (Base: 0x%x)\n", heap_placement_address);
 
-    print_serial_string("Dropping into system runtime interactive loop...\n\r");
+    printf("Dropping into system runtime interactive loop...\n");
 
     // Handoff execution cleanly to our automated serial interactive shell loop
     shell_init();

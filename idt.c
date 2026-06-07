@@ -1,5 +1,6 @@
 #include "idt.h"
 #include "keyboard.h"
+#include "timer.h"
 #include <stddef.h>
 
 idt_entry_t idt_entries[256];
@@ -113,20 +114,9 @@ void isr_handler(registers_t regs) {
 }
 
 void irq_handler(registers_t regs) {
-    /* Corner Diagnostic Alert: The system clock is going to force 
-       this cell to flash continuously in the background now! */
-    volatile uint16_t* vga_diagnostic = (volatile uint16_t*)0xB8000;
-    static uint8_t switch_flag = 0;
-    
-    if (switch_flag) {
-        vga_diagnostic[79] = (uint16_t)'!' | (uint16_t)0x0E << 8;
-        switch_flag = 0;
-    } else {
-        vga_diagnostic[79] = (uint16_t)'?' | (uint16_t)0x0A << 8;
-        switch_flag = 1;
-    }
-
-    if (regs.int_no == 33) {
+    if (regs.int_no == 32) {
+        timer_handler(&regs);
+    } else if (regs.int_no == 33) {
         keyboard_handler(&regs);
     }
 
