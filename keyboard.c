@@ -1,4 +1,4 @@
-#include <stdint.h>
+#include "keyboard.h"
 
 extern void shell_input_char(char c);
 
@@ -26,7 +26,8 @@ void init_keyboard(void) {
 }
 
 /* Hardware Interrupt service routine bound directly to IRQ1 via your IDT table entry */
-void keyboard_handler(void) {
+void keyboard_handler(registers_t* regs) {
+    (void)regs;
     uint8_t scancode = inb(0x60);
     
     // Issue the explicit End-Of-Interrupt token to the Master PIC command port

@@ -25,10 +25,14 @@ gcc $FLAGS shell.c -o shell.o
 gcc $FLAGS graphics.c -o graphics.o
 gcc $FLAGS malloc.c -o malloc.o
 gcc $FLAGS keyboard.c -o keyboard.o
+gcc $FLAGS vga.c -o vga.o
+gcc $FLAGS timer.c -o timer.o
+gcc $FLAGS string.c -o string.o
+gcc $FLAGS stdio.c -o stdio.o
 
 echo "=== 4. LINKING UNIFIED KERNEL BINARY ==="
 # Bind all compiled artifacts sequentially, locking boot.o strictly at the head front
-ld -m elf_i386 -T linker.ld -o isodir/boot/myos.bin boot.o interrupt.o kernel.o gdt.o gdt_flush.o idt.o shell.o graphics.o malloc.o keyboard.o
+ld -m elf_i386 -T linker.ld -o isodir/boot/myos.bin boot.o interrupt.o kernel.o gdt.o gdt_flush.o idt.o shell.o graphics.o malloc.o keyboard.o vga.o timer.o string.o stdio.o
 
 echo "=== 5. BUILDING ISO FILESYSTEM TREE ==="
 if [ -f grub.cfg ]; then
