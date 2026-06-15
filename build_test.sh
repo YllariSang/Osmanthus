@@ -11,6 +11,7 @@ nasm -f elf32 boot.asm -o boot.o
 nasm -f elf32 gdt_flush.asm -o gdt_flush.o
 nasm -f elf32 interrupt.asm -o interrupt.o
 nasm -f elf32 paging_asm.asm -o paging_asm.o
+nasm -f elf32 switch.asm -o switch.o
 
 echo "=== 3. COMPILING CORE C MODULES ==="
 FLAGS="-m32 -c -std=gnu99 -ffreestanding -O2 -Wall -Wextra -fno-stack-protector -fno-pie -nostdlib -fno-builtin -mno-sse -mno-sse2 -mno-mmx"
@@ -28,9 +29,11 @@ gcc $FLAGS string.c -o string.o
 gcc $FLAGS stdio.c -o stdio.o
 gcc $FLAGS pmm.c -o pmm.o
 gcc $FLAGS vmm.c -o vmm.o
+gcc $FLAGS task.c -o task.o
+gcc $FLAGS scheduler.c -o scheduler.o
 
 echo "=== 4. LINKING UNIFIED KERNEL BINARY ==="
-ld -m elf_i386 -T linker.ld -o isodir/boot/myos.bin boot.o interrupt.o paging_asm.o kernel.o gdt.o gdt_flush.o idt.o shell.o graphics.o malloc.o pmm.o vmm.o keyboard.o vga.o timer.o string.o stdio.o
+ld -m elf_i386 -T linker.ld -o isodir/boot/myos.bin boot.o interrupt.o paging_asm.o switch.o kernel.o gdt.o gdt_flush.o idt.o shell.o graphics.o malloc.o pmm.o vmm.o task.o scheduler.o keyboard.o vga.o timer.o string.o stdio.o
 
 echo "=== 5. BUILDING ISO FILESYSTEM TREE ==="
 if [ -f grub.cfg ]; then

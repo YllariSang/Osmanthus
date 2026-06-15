@@ -4,6 +4,8 @@
 #include "timer.h"
 #include "stdio.h"
 #include "kernel.h"
+#include "task.h"
+#include "scheduler.h"
 
 #define SERIAL_PORT_COM1 0x3F8
 
@@ -93,6 +95,35 @@ void terminal_writestring(const char* data) {
     print_serial_string(data);
 }
 
+/* --- TEST TASK FUNCTIONS FOR MULTITASKING --- */
+volatile uint32_t task1_counter = 0;
+volatile uint32_t task2_counter = 0;
+volatile uint32_t task3_counter = 0;
+
+void test_task_1(void) {
+    while (1) {
+        task1_counter++;
+        // Small work to simulate task activity
+        for (volatile int i = 0; i < 1000; i++);
+    }
+}
+
+void test_task_2(void) {
+    while (1) {
+        task2_counter++;
+        // Small work to simulate task activity
+        for (volatile int i = 0; i < 1000; i++);
+    }
+}
+
+void test_task_3(void) {
+    while (1) {
+        task3_counter++;
+        // Small work to simulate task activity
+        for (volatile int i = 0; i < 1000; i++);
+    }
+}
+
 /* --- KERNEL INITIALIZATION ENTRY POINT --- */
 void kernel_main(void) {
     // Force clean state by disabling CPU interrupts during core hardware table setups
@@ -136,6 +167,30 @@ void kernel_main(void) {
     // Initialize Virtual Memory Manager (VMM) - enables paging
     vmm_init();
     printf("Virtual Memory Manager: ENABLED (Paging Active)\n");
+
+    // Initialize Task and Scheduler systems
+    task_init();
+    scheduler_init();
+    printf("Task Management System: INITIALIZED\n");
+    
+    // Create test tasks to demonstrate multitasking
+    task_t* task1 = task_create(test_task_1, "Task-1", 4096);
+    task_t* task2 = task_create(test_task_2, "Task-2", 4096);
+    task_t* task3 = task_create(test_task_3, "Task-3", 4096);
+    
+    if (task1) {
+        scheduler_add_task(task1);
+        printf("Created Task 1 (ID: %d)\n", task1->id);
+    }
+    if (task2) {
+        scheduler_add_task(task2);
+        printf("Created Task 2 (ID: %d)\n", task2->id);
+    }
+    if (task3) {
+        scheduler_add_task(task3);
+        printf("Created Task 3 (ID: %d)\n", task3->id);
+    }
+    printf("Total tasks created: %d\n", scheduler_get_task_count());
 
     printf("Dropping into system runtime interactive loop...\n");
 

@@ -1,10 +1,54 @@
+# ===== BUILD ARTIFACTS =====
 # Compiled binaries and ISO images
 *.bin
 *.iso
 
-# Object files
+# Object files and compiled code
 *.o
+*.elf
+*.map
 
 # Temporary build directories
 isodir/
+/build/
+/dist/
+
+# ===== LOGS AND DEBUG =====
+*.log
+serial.log
+debug.log
+
+# ===== GENERATED/TEST FILES =====
+build_test.sh
+ANALYSIS.md
+QUICKREF.txt
+DEPENDENCIES.txt
+
+# ===== EXTERNAL DEPENDENCIES =====
 novnc_desktop/
+
+# ===== IDE/EDITOR FILES =====
+.vscode/
+.idea/
+*.sublime-workspace
+*.sublime-project
+.DS_Store
+Thumbs.db
+
+# ===== BACKUP AND TEMPORARY FILES =====
+*.swp
+*.swo
+*~
+*.bak
+*.tmp
+*.temp
+
+# ===== OS-SPECIFIC =====
+.AppleDouble
+.LSOverride
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+
+# ===== VSCODE EXTENSIONS =====
+.vscode-server/
