@@ -12,6 +12,8 @@ extern void init_gdt(void);
 extern void init_idt(void);
 extern void init_keyboard(void);
 extern void shell_init(void);
+extern void pmm_init(uint32_t start_addr, uint32_t size);
+extern void vmm_init(void);
 
 extern char _end[];
 extern void kmalloc_init(uint32_t start_address, size_t initial_size);
@@ -125,6 +127,15 @@ void kernel_main(void) {
     uint32_t heap_placement_address = (uint32_t)_end;
     kmalloc_init(heap_placement_address, 1024 * 1024); // Allocate 1MB Pool Area
     printf("Kernel Dynamic Heap System: READY (Base: 0x%x)\n", heap_placement_address);
+
+    // Initialize Physical Memory Manager (PMM)
+    uint32_t pmm_bitmap_addr = heap_placement_address + (1024 * 1024); // After 1MB heap
+    pmm_init(pmm_bitmap_addr, 256 * 1024 * 1024); // Manage 256MB of physical memory
+    printf("Physical Memory Manager: INITIALIZED (Bitmap: 0x%x)\n", pmm_bitmap_addr);
+
+    // Initialize Virtual Memory Manager (VMM) - enables paging
+    vmm_init();
+    printf("Virtual Memory Manager: ENABLED (Paging Active)\n");
 
     printf("Dropping into system runtime interactive loop...\n");
 

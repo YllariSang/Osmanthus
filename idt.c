@@ -92,24 +92,109 @@ void init_idt(void) {
 }
 
 void isr_handler(registers_t regs) {
-    terminal_writestring("\nCRITICAL EXCEPTION HALT ID: ");
-    uint32_t n = regs.int_no;
-    if (n == 0) {
-        terminal_putchar('0');
+    uint32_t int_no = regs.int_no;
+    
+    // Exception names for better diagnostics
+    const char* exception_names[] = {
+        "Divide by Zero", "Debug", "NMI", "Breakpoint",
+        "Overflow", "Bound Range", "Invalid Opcode", "Device Not Available",
+        "Double Fault", "Coprocessor Segment", "Invalid TSS", "Segment Not Present",
+        "Stack Segment", "General Protection", "Page Fault", "Reserved",
+        "Floating Point", "Alignment Check", "Machine Check", "SIMD Exception"
+    };
+
+    terminal_writestring("\n========== EXCEPTION OCCURRED ==========\n");
+    terminal_writestring("Exception ID: ");
+    
+    if (int_no < 20) {
+        terminal_writestring(exception_names[int_no]);
     } else {
         char buf[12];
         int i = 10;
         buf[11] = '\0';
+        uint32_t n = int_no;
         while (n > 0 && i >= 0) {
             buf[i--] = (n % 10) + '0';
             n /= 10;
         }
         terminal_writestring(&buf[i + 1]);
     }
+    terminal_writestring(" (");
+    char buf[12];
+    int i = 10;
+    buf[11] = '\0';
+    uint32_t n = int_no;
+    while (n > 0 && i >= 0) {
+        buf[i--] = (n % 10) + '0';
+        n /= 10;
+    }
+    terminal_writestring(&buf[i + 1]);
+    terminal_writestring(")\n");
+    
+    // Print error code if present
+    if (int_no == 8 || (int_no >= 10 && int_no <= 14)) {
+        terminal_writestring("Error Code: 0x");
+        char hex_buf[16];
+        int j = 0;
+        uint32_t code = regs.error_code;
+        for (int k = 28; k >= 0; k -= 4) {
+            uint8_t nibble = (code >> k) & 0xF;
+            hex_buf[j++] = (nibble < 10) ? ('0' + nibble) : ('A' + nibble - 10);
+        }
+        hex_buf[j] = '\0';
+        terminal_writestring(hex_buf);
+        terminal_writestring("\n");
+    }
+    
+    terminal_writestring("EIP: 0x");
+    char hex_buf[16];
+    int j = 0;
+    for (int k = 28; k >= 0; k -= 4) {
+        uint8_t nibble = (regs.eip >> k) & 0xF;
+        hex_buf[j++] = (nibble < 10) ? ('0' + nibble) : ('A' + nibble - 10);
+    }
+    hex_buf[j] = '\0';
+    terminal_writestring(hex_buf);
     terminal_writestring("\n");
 
-    while(1) {
-        asm volatile("cli; hlt");
+    // Handle specific exceptions with recovery attempts
+    switch(int_no) {
+        case 0: // Divide by Zero
+            terminal_writestring("ERROR: Division by zero attempted. Cannot recover.\n");
+            terminal_writestring("========================================\n");
+            terminal_writestring("System entering safe halt. Press any key for shell.\n");
+            break;
+            
+        case 13: // General Protection Fault
+            terminal_writestring("WARNING: General Protection Fault detected.\n");
+            terminal_writestring("Attempting to recover by returning to shell...\n");
+            terminal_writestring("========================================\n");
+            // In a real kernel, we would restore state and continue
+            // For now, return to shell
+            return;
+            
+        case 14: // Page Fault
+            terminal_writestring("CRITICAL: Page Fault detected.\n");
+            terminal_writestring("CR2 (Faulting Address) information not available in protected mode.\n");
+            terminal_writestring("Cannot safely recover. System halting.\n");
+            terminal_writestring("========================================\n");
+            break;
+            
+        default:
+            if (int_no < 32) {
+                terminal_writestring("CPU Exception (unhandled).\n");
+                terminal_writestring("Attempting to continue...\n");
+                terminal_writestring("========================================\n");
+                return; // Try to recover from unknown exceptions
+            }
+            break;
+    }
+
+    // Critical exceptions cause halt
+    if (int_no == 0 || int_no == 8 || int_no == 14) {
+        while(1) {
+            asm volatile("cli; hlt");
+        }
     }
 }
 

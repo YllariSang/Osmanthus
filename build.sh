@@ -13,6 +13,7 @@ echo "=== 2. ASSEMBLING ASSEMBLY STUBS ==="
 nasm -f elf32 boot.asm -o boot.o
 nasm -f elf32 gdt_flush.asm -o gdt_flush.o
 nasm -f elf32 interrupt.asm -o interrupt.o
+nasm -f elf32 paging_asm.asm -o paging_asm.o
 
 echo "=== 3. COMPILING CORE C MODULES ==="
 # Compile with strict bare-metal optimizations, disabling implicit vectorization loops (SSE)
@@ -29,10 +30,12 @@ gcc $FLAGS vga.c -o vga.o
 gcc $FLAGS timer.c -o timer.o
 gcc $FLAGS string.c -o string.o
 gcc $FLAGS stdio.c -o stdio.o
+gcc $FLAGS pmm.c -o pmm.o
+gcc $FLAGS vmm.c -o vmm.o
 
 echo "=== 4. LINKING UNIFIED KERNEL BINARY ==="
 # Bind all compiled artifacts sequentially, locking boot.o strictly at the head front
-ld -m elf_i386 -T linker.ld -o isodir/boot/myos.bin boot.o interrupt.o kernel.o gdt.o gdt_flush.o idt.o shell.o graphics.o malloc.o keyboard.o vga.o timer.o string.o stdio.o
+ld -m elf_i386 -T linker.ld -o isodir/boot/myos.bin boot.o interrupt.o paging_asm.o kernel.o gdt.o gdt_flush.o idt.o shell.o graphics.o malloc.o pmm.o vmm.o keyboard.o vga.o timer.o string.o stdio.o
 
 echo "=== 5. BUILDING ISO FILESYSTEM TREE ==="
 if [ -f grub.cfg ]; then
