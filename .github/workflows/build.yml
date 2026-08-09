@@ -62,10 +62,33 @@ jobs:
 
       - name: Check for boot markers in serial log
         run: |
-          grep -q "OSMANTHUS MICROKERNEL SERIAL PIPELINE ACTIVE" serial_output.log
-          grep -q "GDT Layout Initialization: SUCCESS" serial_output.log
-          grep -q "IDT Core Handlers Activated: SUCCESS" serial_output.log
-          grep -q "Kernel Dynamic Heap System: READY" serial_output.log
+          MARKERS=(
+            "OSMANTHUS MICROKERNEL SERIAL PIPELINE ACTIVE"
+            "GDT Layout Initialization: SUCCESS"
+            "IDT Core Handlers Activated: SUCCESS"
+            "Keyboard Driver Initialization: SUCCESS"
+            "Kernel Dynamic Heap System: READY"
+          )
+
+          FAILED=0
+          for marker in "${MARKERS[@]}"; do
+            if grep -qF "$marker" serial_output.log; then
+              echo "PASS: $marker"
+            else
+              echo "MISSING: $marker"
+              FAILED=1
+            fi
+          done
+
+          if [ "$FAILED" -ne 0 ]; then
+            echo ""
+            echo "----- Full serial log (for debugging) -----"
+            cat serial_output.log || echo "(log file empty or missing)"
+            echo "---------------------------------------------"
+            echo "One or more expected boot markers were not found."
+            exit 1
+          fi
+
           echo "Boot smoke test passed."
 
       - name: Upload serial log
