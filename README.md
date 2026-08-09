@@ -1,4 +1,4 @@
-# Custom x86 Arch Microkernel
+# Custom x86 Microkernel
 
 A minimalistic, bare-metal 32-bit x86 operating system microkernel built from scratch. This project demonstrates low-level systems programming, hardware initialization, and interrupt handling without relying on standard C runtime environments.
 
