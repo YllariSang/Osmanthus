@@ -57,6 +57,15 @@ echo "=== 6. GENERATING BOOTABLE ISO MEDIA ==="
 # Package raw files inside the GRUB image framework wrapper layout
 grub-mkrescue -o myos.iso isodir
 
+# Skip the interactive boot/display steps below when running headless (CI, or
+# explicit --build-only flag). CI runners have no display server, so the GTK
+# QEMU window and noVNC proxy below would just fail.
+if [ "${1:-}" = "--build-only" ] || [ -n "${CI:-}" ]; then
+    echo "=== BUILD-ONLY MODE: SKIPPING INTERACTIVE BOOT ==="
+    echo "ISO ready at myos.iso"
+    exit 0
+fi
+
 echo "=== 7. BOOTING TARGET ENGINE ==="
 # Kill off frozen background processes securely to clear out network port assignments
 killall -9 qemu-system-i386 novnc_proxy websockify 2>/dev/null || true
