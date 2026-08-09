@@ -1,0 +1,6 @@
+.git
+*.o
+isodir/
+myos.iso
+myos.bin
+serial_output.log
