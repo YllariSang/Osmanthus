@@ -24,7 +24,9 @@ jobs:
             nasm \
             grub-pc-bin \
             grub-common \
+            grub-efi-amd64-bin \
             xorriso \
+            mtools \
             qemu-system-x86
 
       - name: Build kernel ISO
