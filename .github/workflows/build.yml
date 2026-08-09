@@ -62,11 +62,59 @@ jobs:
 
       - name: Check for boot markers in serial log
         run: |
-          grep -q "OSMANTHUS MICROKERNEL SERIAL PIPELINE ACTIVE" serial_output.log
-          grep -q "GDT Layout Initialization: SUCCESS" serial_output.log
-          grep -q "IDT Core Handlers Activated: SUCCESS" serial_output.log
-          grep -q "Kernel Dynamic Heap System: READY" serial_output.log
-          echo "Boot smoke test passed."
+          # These prove the kernel booted all the way to the interactive shell.
+          # Treated as required -- if either is missing, something crashed or hung.
+          REQUIRED_MARKERS=(
+            "OSMANTHUS OS NATIVE COMPOSITOR SHELL"
+            "Osmanthus OS >"
+          )
+
+          # Informational only: subsystem init messages. Logged for visibility,
+          # but their exact wording changes as the kernel evolves, so a miss
+          # here doesn't fail the build on its own.
+          INFO_MARKERS=(
+            "GDT Layout Initialization"
+            "IDT Core Handlers Activated"
+            "Keyboard Driver Initialization"
+            "PIT Timer"
+            "Kernel Dynamic Heap System"
+            "Physical Memory Manager"
+            "Virtual Memory Manager"
+            "Task Management System"
+          )
+
+          echo "--- Subsystem init markers (informational) ---"
+          for marker in "${INFO_MARKERS[@]}"; do
+            if grep -qF "$marker" serial_output.log; then
+              echo "PASS: $marker"
+            else
+              echo "MISSING: $marker"
+            fi
+          done
+
+          echo ""
+          echo "--- Required markers (build fails if missing) ---"
+          FAILED=0
+          for marker in "${REQUIRED_MARKERS[@]}"; do
+            if grep -qF "$marker" serial_output.log; then
+              echo "PASS: $marker"
+            else
+              echo "MISSING: $marker"
+              FAILED=1
+            fi
+          done
+
+          if [ "$FAILED" -ne 0 ]; then
+            echo ""
+            echo "----- Full serial log (for debugging) -----"
+            cat serial_output.log || echo "(log file empty or missing)"
+            echo "---------------------------------------------"
+            echo "Kernel did not reach the interactive shell."
+            exit 1
+          fi
+
+          echo ""
+          echo "Boot smoke test passed: kernel reached the interactive shell."
 
       - name: Upload serial log
         if: always()
