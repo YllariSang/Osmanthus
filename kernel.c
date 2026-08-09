@@ -197,7 +197,7 @@ void kernel_main(void) {
     // Handoff execution cleanly to our automated serial interactive shell loop
     shell_init();
 
-    // Fallback safety safety net loop
+    // Fallback safety net loop
     while (1) {
         asm volatile("hlt");
     }
