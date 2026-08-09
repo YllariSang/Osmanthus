@@ -1,0 +1,74 @@
+name: Build
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Install toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            gcc \
+            gcc-multilib \
+            nasm \
+            grub-pc-bin \
+            grub-common \
+            xorriso \
+            qemu-system-x86
+
+      - name: Build kernel ISO
+        run: |
+          chmod +x build.sh
+          ./build.sh
+
+      - name: Locate build artifact
+        id: artifact
+        run: |
+          ISO=$(find . -maxdepth 3 -iname '*.iso' | head -n1)
+          if [ -z "$ISO" ]; then
+            echo "No .iso produced by build.sh" >&2
+            exit 1
+          fi
+          echo "iso_path=$ISO" >> "$GITHUB_OUTPUT"
+
+      - name: Upload ISO artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: osmanthus-iso
+          path: ${{ steps.artifact.outputs.iso_path }}
+
+      - name: Smoke test boot in QEMU
+        run: |
+          timeout 20s qemu-system-i386 \
+            -cdrom "${{ steps.artifact.outputs.iso_path }}" \
+            -serial file:serial_output.log \
+            -display none \
+            -no-reboot || true
+          echo "----- Serial output -----"
+          cat serial_output.log || echo "(no serial output captured)"
+
+      - name: Check for boot markers in serial log
+        run: |
+          grep -q "OSMANTHUS MICROKERNEL SERIAL PIPELINE ACTIVE" serial_output.log
+          grep -q "GDT Layout Initialization: SUCCESS" serial_output.log
+          grep -q "IDT Core Handlers Activated: SUCCESS" serial_output.log
+          grep -q "Kernel Dynamic Heap System: READY" serial_output.log
+          echo "Boot smoke test passed."
+
+      - name: Upload serial log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: serial-log
+          path: serial_output.log
